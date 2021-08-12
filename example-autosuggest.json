@@ -1,0 +1,70 @@
+{
+  "results": {
+    "terms": [
+      {
+        "link": "/example1",
+        "text": "monitor",
+        "sections": [
+          {
+            "link": "/section1",
+            "text": "in All Departments"
+          },
+          {
+            "link": "/section2",
+            "text": "in Computer Monitors"
+          },
+          {
+            "link": "/section3",
+            "text": "in Monitor Stands &amp; Mounts"
+          }
+        ]
+      },
+      {
+        "link": "/example2",
+        "text": "monitor stand"
+      },
+      {
+        "link": "/example3",
+        "text": "monitor riser"
+      },
+      {
+        "link": "/example4",
+        "text": "computer monitor"
+      }
+    ],
+    "suggestions": [
+      {
+        "image": "https://www.staples-3p.com/s7/is/image/Staples/sp113119122_sc7?wid=180&amp;hei=180",
+        "title": "HP Mini-in-One 23.8\" HD LED Monitor w/ built-in Microphone, Speakers &amp; Webcam, Black/Silver (7AX23A8#ABA)",
+        "link": "/product1",
+        "final_price": "$149.99"
+      },
+      {
+        "image": "https://www.staples-3p.com/s7/is/image/Staples/sp105169936_sc7?wid=180&amp;hei=180",
+        "title": "HP P24v G4 9TT78A6#ABA 23.8\" LED 1080 Full HD Monitor, Black",
+        "link": "/product2",
+        "final_price": "$199.99",
+        "original_price": "$249.99"
+      },
+      {
+        "image": "https://www.staples-3p.com/s7/is/image/Staples/sp100192589_sc7?wid=180&hei=180",
+        "title": "HP V27i 9SV92AA#ABA 27\" LED Monitor, Black",
+        "link": "/product3",
+        "final_price": "$199.99"
+      },
+      {
+        "image": "https://www.staples-3p.com/s7/is/image/Staples/sp24974483_sc7?wid=180&hei=180",
+        "title": "AOC 24B1H 24\" LCD Monitor, Black",
+        "link": "/product4",
+        "final_price": "$199.99",
+        "original_price": "$349.99"
+      },
+      {
+        "image": "https://www.staples-3p.com/s7/is/image/Staples/sp28276151_sc7?wid=180&hei=180",
+        "title": "HP 32s 2UD96AA#ABA 31.5\" LED Monitor, Silver/Black",
+        "link": "/product5",
+        "final_price": "$169.99"
+      }
+    ]
+  }
+}

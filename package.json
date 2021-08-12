@@ -1,0 +1,90 @@
+{
+  "name": "bloomreach-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "cy:run": "cypress run",
+    "cy:open": "cypress open",
+    "clean:dist": "rimraf dist",
+    "test:watch": "jest --watchAll",
+    "build": "npm-run-all clean:dist build:all",
+    "build:all": "npm-run-all --parallel build:autosuggest build:category build:pathways build:search build:events",
+    "build:autosuggest": "parcel build --no-source-maps documents/autosuggest.html",
+    "build:category": "parcel build --no-source-maps documents/category.html",
+    "build:pathways": "parcel build --no-source-maps documents/pathways-and-recommendations.html",
+    "build:search": "parcel build --no-source-maps documents/product-search.html",
+    "build:events": "parcel build --no-source-maps documents/product-events.html",
+    "start:compile": "tsc -w",
+    "parcel:serve": "parcel serve documents/autosuggest.html documents/category.html documents/pathways-and-recommendations.html documents/product-search.html documents/product-events.html",
+    "parcel:all": "parcel documents/autosuggest.html documents/category.html documents/pathways-and-recommendations.html documents/product-search.html documents/product-events.html",
+    "parcel:autosuggest": "parcel documents/autosuggest.html",
+    "parcel:category": "parcel documents/category.html",
+    "parcel:pathways": "parcel documents/pathways-and-recommendations.html",
+    "parcel:search": "parcel documents/product-search.html",
+    "parcel:events": "parcel documents/product-events.html",
+    "start:autosuggest": "npm-run-all --parallel start:compile parcel:autosuggest",
+    "start:category": "npm-run-all --parallel start:compile parcel:category",
+    "start:pathways": "npm-run-all --parallel start:compile parcel:pathways",
+    "start:search": "npm-run-all --parallel start:compile parcel:search",
+    "start:events": "npm-run-all --parallel start:compile parcel:events",
+    "start": "npm-run-all --parallel start:compile parcel:all",
+    "format": "prettier --write .",
+    "lint": "eslint . --ext ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/borngroup/bloomreach-sdk.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/borngroup/bloomreach-sdk#readme",
+  "devDependencies": {
+    "@testing-library/cypress": "^7.0.5",
+    "@types/ejs": "^3.0.6",
+    "@types/jest": "^26.0.21",
+    "@typescript-eslint/eslint-plugin": "^4.18.0",
+    "@typescript-eslint/parser": "^4.18.0",
+    "autoprefixer": "^9.0.0",
+    "cypress": "^7.0.0",
+    "cypress-expect-n-assertions": "^1.0.0",
+    "eslint": "^7.22.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-cypress": "^2.11.2",
+    "husky": "^4",
+    "jest": "^26.6.3",
+    "jest-watch-typeahead": "^0.6.1",
+    "lint-staged": "^10.5.4",
+    "npm-run-all": "^4.1.5",
+    "parcel-bundler": "1.12.3",
+    "prettier": "^2.2.1",
+    "sass": "^1.32.8",
+    "start-server-and-test": "^1.12.1",
+    "ts-jest": "^26.5.4",
+    "typescript": "^4.2.3"
+  },
+  "dependencies": {
+    "ejs": "^3.1.6",
+    "postcss": "^8.1.0",
+    "rimraf": "^3.0.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --cache --fix",
+      "jest --findRelatedTests"
+    ]
+  },
+  "browserslist": [
+    "last 3 and_chr versions",
+    "last 3 chrome versions",
+    "last 3 opera versions",
+    "last 3 ios_saf versions",
+    "last 3 safari versions"
+  ]
+}

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product Events document</title>
+
+    <script id="connector-example">
+      window.bloomreachConnector = {}
+      bloomreachConnector.config = {
+        account_id: '6511',
+        domain_key: 'sandbox_bornconnector',
+        auth_key: '3ggj32eqbeqaahsa',
+        tracking_cookie:
+          'uid%3D5015349870045%3Av%3D11.8%3Ats%3D1613763063884%3Ahc%3D114',
+        default_search_parameter: 'q',
+        search_page_url: 'http://localhost:1234/product-search.html',
+        search: {
+          enabled: true,
+          items_per_page: 16,
+          facets_included: true,
+          initial_number_of_facets: 5,
+          initial_number_of_facet_values: 6,
+          infinite_scroll: false,
+          selector: '.main-content',
+          sorting_options: [
+            {label: 'Relevance', value: ''},
+            {label: 'Price (low - high)', value: 'price+asc'},
+            {label: 'Name (A - Z)', value: 'title+asc'},
+            {label: 'Price (high - low)', value: 'price+desc'},
+            {label: 'Name (Z - A)', value: 'title+desc'}
+          ],
+          is_search_page: true,
+          display_variants: false
+        },
+        autosuggest: {
+          enabled: true,
+          number_of_terms: 13,
+          number_of_products: 14,
+          number_of_collections: 12,
+          selector: '.search__input'
+        },
+        category: {
+          enabled: true,
+          sorting_options: [
+            {label: 'Relevance', value: ''},
+            {label: 'Price (low - high)', value: 'price+asc'},
+            {label: 'Name (A - Z)', value: 'title+asc'},
+            {label: 'Price (high - low)', value: 'price+desc'},
+            {label: 'Name (Z - A)', value: 'title+desc'}
+          ],
+          items_per_page: 12,
+          facets_included: true,
+          initial_number_of_facets: 5,
+          initial_number_of_facet_values: 6,
+          infinite_scroll: false,
+          selector: '.main-content',
+          is_category_page: false,
+          display_variants: true
+        }
+      }
+    </script>
+
+    <script type="text/javascript">
+      const br_data = window.br_data || {}
+      br_data.acct_id = '6511'
+      br_data.ptype = 'homepage'
+      br_data.title = 'Bloomreach Connector Development'
+      br_data.domain_key = 'sandbox_bornconnector'
+      br_data.catalogs = ['NEED_MORE_INFO']
+      br_data.view_id = 'NEED_MORE_INFO'
+      br_data.user_id = ''
+      br_data.tms = 'NEED_MORE_INFO'
+      ;(function () {
+        const brtrk = document.createElement('script')
+        brtrk.type = 'text/javascript'
+        brtrk.async = true
+        brtrk.src = '//cdn.brcdn.com/v1/br-trk-6511.js'
+        const s = document.getElementsByTagName('script')[0]
+        s.parentNode.insertBefore(brtrk, s)
+      })()
+    </script>
+
+    <script src="../src/modules/product-events.ts" defer></script>
+  </head>
+  <body>
+    <h1>Product Event module</h1>
+
+    <main class="main-content">
+      <div>
+        <h2>Add to cart 1</h2>
+        <pre>
+          sku: "Chair123"
+          prod-id: "60765"
+          prod-name: "Weathered Gray Wood Jozy Dining Chairs Set of 2"
+        </pre>
+        <button
+          id="AddToCart-product-template1"
+          type="submit"
+          name="add"
+          class="btn btn--add-to-cart btn--secondary-accent"
+          data-blm-add-to-cart
+          data-blm-add-to-cart-sku="Chair123"
+          data-blm-add-to-cart-prod-id="60765"
+          data-blm-add-to-cart-prod-name="Weathered Gray Wood Jozy Dining Chairs Set of 2"
+        >
+          <span class="btn__text">Add to cart</span>
+        </button>
+      </div>
+      <div>
+        <h2>Add to cart 2</h2>
+        <pre>
+          sku: "Chair456"
+          prod-id: "85471"
+          prod-name: "Graywashed Wood And Wicker Claire Outdoor Rocking Chair"
+        </pre>
+        <button
+          id="AddToCart-product-template2"
+          type="submit"
+          name="add"
+          class="btn btn--add-to-cart btn--secondary-accent"
+          data-blm-add-to-cart
+          data-blm-add-to-cart-sku="Chair456"
+          data-blm-add-to-cart-prod-id="85471"
+          data-blm-add-to-cart-prod-name="Graywashed Wood And Wicker Claire Outdoor Rocking Chair"
+        >
+          <span class="btn__text">Add to cart</span>
+        </button>
+      </div>
+      <div>
+        <h2>Quickview 1</h2>
+        <pre>
+          sku: "Chair123"
+          prod-id: "60765"
+          prod-name: "Weathered Gray Wood Jozy Dining Chairs Set of 2"
+        </pre>
+        <button
+          id="Quickview-product-template1"
+          class="btn btn--add-to-cart btn--secondary-accent"
+          data-blm-quickview
+          data-blm-quickview-sku="Chair123"
+          data-blm-quickview-prod-id="60765"
+          data-blm-quickview-prod-name="Weathered Gray Wood Jozy Dining Chairs Set of 2"
+        >
+          <span class="btn__text">Quickview</span>
+        </button>
+      </div>
+      <div>
+        <h2>Quickview 2</h2>
+        <pre>
+          sku: "Chair456"
+          prod-id: "85471"
+          prod-name: "Graywashed Wood And Wicker Claire Outdoor Rocking Chair"
+        </pre>
+        <button
+          id="Quickview-product-template2"
+          class="btn btn--add-to-cart btn--secondary-accent"
+          data-blm-quickview
+          data-blm-quickview-sku="Chair456"
+          data-blm-quickview-prod-id="85471"
+          data-blm-quickview-prod-name="Graywashed Wood And Wicker Claire Outdoor Rocking Chair"
+        >
+          <span class="btn__text">Quickview</span>
+        </button>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,1081 @@
+import {Logger} from '../../utils/logger'
+import ejs from 'ejs'
+import {ApiCore} from '../core'
+import {CategoryConfigParameters, SortByOptions} from '../../config/interfaces'
+import {CategoryConfig} from '../../config/category'
+import {DomUtils} from '../../utils/dom'
+import {mobileView} from '../../config/common'
+import {
+  PaginationNode,
+  CategoryData
+} from '../../utils/object-mappers/category/interfaces/category-data'
+
+const PARAMETER_NAME_FACETS = 'fq'
+const PARAMETER_NAME_SIZE = 'size'
+const PARAMETER_NAME_SORT = 'sort'
+const PARAMETER_NAME_PAGE = 'page'
+const PARAMETER_NAME_FILTERS_PANEL = 'filterpanel'
+const MAX_COLOR_SWATCHES = 4
+const MAX_PAGINATION_NUMBER_BEFORE_CURRENT = 2
+const MAX_PAGINATION_NUMBER_AFTER_CURRENT = 2
+const DEFAULT_CURRENCY = '$'
+
+declare const window: any
+
+let loadSwatch: any
+
+export interface CategoryDependencies {
+  template: string
+  resultsContainerElement: HTMLElement
+  logger?: Logger
+}
+
+export class CategoryModule {
+  private data: CategoryDependencies
+
+  private infiniteSize = 0
+  private priceRangeMaxValue = 0
+  private priceRangeStep = 0
+  private maxSlideRange = 0
+  private checkedFacets: {[key: string]: string[]} = {}
+
+  constructor(options: CategoryDependencies) {
+    const logger = Logger.buildConsoleLogger()
+
+    this.data = {
+      logger,
+      ...options
+    }
+
+    this.checkRequirements()
+  }
+
+  private checkRequirements(): void {
+    if (!this.data.template) {
+      throw new Error('You must provide template string for Category module')
+    }
+    if (!this.data.resultsContainerElement) {
+      throw new Error(
+        'You must provide search results container element for Category module'
+      )
+    }
+  }
+
+  static load(categoryIdToLoad = ''): CategoryModule | null {
+    const config = CategoryConfig.build({q: categoryIdToLoad})
+
+    if (!categoryIdToLoad && !config.get('isCategoryPage')) {
+      return null
+    }
+    const resultsContainerElement = document.querySelector(
+      config.get('selector')
+    ) as HTMLElement
+
+    return new CategoryModule({
+      resultsContainerElement,
+      template: config.get('template') || CategoryModule.template
+    }).init(config)
+  }
+
+  init(config: CategoryConfig): CategoryModule {
+    // add listeners for sort selector, page size selector, facets
+
+    const urlParameters = new URLSearchParams(window.location.search)
+
+    if (
+      config.get('urlParameters').q ||
+      urlParameters.has(config.get('defaultSearchParameter')) ||
+      config.get('categoryId')
+    ) {
+      this.initiateSearch(urlParameters, config)
+
+      // Infinite scroll
+      if (
+        (mobileView.matches || config.get('infiniteScroll')) &&
+        !document.querySelector('.blm-scroll-indicator')
+      ) {
+        const indicatorElement = document.createElement('div')
+        indicatorElement.classList.add('blm-scroll-indicator')
+        const loaderElement = document.createElement('div')
+        loaderElement.classList.add('blm-scroll-indicator__loading')
+        indicatorElement.appendChild(loaderElement)
+        this.data.resultsContainerElement?.parentNode?.insertBefore(
+          indicatorElement,
+          this.data.resultsContainerElement.nextSibling
+        )
+      }
+      if (mobileView.matches || config.get('infiniteScroll')) {
+        const scrollIndicator = document.querySelector('.blm-scroll-indicator')
+        const intersectionObserver = new IntersectionObserver((entries) => {
+          if (entries[0].intersectionRatio <= 0) {
+            return
+          }
+          this.initiateScroll(
+            new URLSearchParams(window.location.search),
+            config
+          )
+        })
+        if (scrollIndicator) {
+          intersectionObserver.observe(scrollIndicator)
+        }
+      }
+
+      /* subtree option may be needed if we have other types of content
+      than the main template, like an error message eg. */
+      const mutationObserverConfig = {childList: true, subtree: true}
+      const callback = (mutationsList: MutationRecord[]) => {
+        const productListAdded = mutationsList.find(
+          (mutationRecord) =>
+            mutationRecord.type === 'childList' &&
+            Array.from(mutationRecord.addedNodes).find(
+              (node) =>
+                (node as HTMLElement).classList &&
+                (node as HTMLElement).classList.contains('blm-category')
+            )
+        )
+
+        if (productListAdded) {
+          const priceRangeLowerBoundaryInput = document.querySelector(
+            '.blm-price-range-input--lower'
+          ) as HTMLInputElement
+          const priceRangeUpperBoundaryInput = document.querySelector(
+            '.blm-price-range-input--upper'
+          ) as HTMLInputElement
+
+          const onPriceRangeChange = () => {
+            const urlParameters = new URLSearchParams(window.location.search)
+            if (urlParameters.has(PARAMETER_NAME_SIZE)) {
+              this.infiniteSize = Number.parseInt(
+                urlParameters.get(PARAMETER_NAME_SIZE) as string
+              )
+            } else {
+              this.infiniteSize = config.get('itemsPerPage')
+            }
+
+            DomUtils.updateMultipleInstanceParametersInUrl(
+              PARAMETER_NAME_FACETS,
+              {
+                ...this.checkedFacets,
+                ...this.buildPriceUrlParameterObject()
+              }
+            )
+            this.initiateSearch(
+              new URLSearchParams(window.location.search),
+              config
+            )
+          }
+
+          if (priceRangeLowerBoundaryInput && priceRangeUpperBoundaryInput) {
+            priceRangeLowerBoundaryInput.addEventListener(
+              'input',
+              onPriceRangeChange
+            )
+            priceRangeUpperBoundaryInput.addEventListener(
+              'input',
+              onPriceRangeChange
+            )
+          }
+
+          // ! Here we can be sure that the template is rendered into the DOM
+
+          // Add a class to show that the module's content has loaded
+          this.data.resultsContainerElement.classList.add('blm-has-loaded')
+
+          if (document.querySelector('.blm-category-sidebar')) {
+            const sidebarControlButtons = document.querySelectorAll(
+              '.blm-category-control-button--sidebar'
+            )
+
+            const sidebarControlButtonClickHandler = () => {
+              const sidebarContentElement = document.querySelector(
+                '.blm-category-sidebar-content'
+              )
+              if (sidebarContentElement?.classList.contains('blm-open')) {
+                sidebarContentElement?.classList.remove('blm-open')
+                document.body.classList.remove('blm-out-of-view')
+                DomUtils.updateParameterInUrl(PARAMETER_NAME_FILTERS_PANEL, '')
+              } else {
+                document.body.classList.add('blm-out-of-view')
+                sidebarContentElement?.classList.add('blm-open')
+                DomUtils.updateParameterInUrl(
+                  PARAMETER_NAME_FILTERS_PANEL,
+                  'on'
+                )
+              }
+            }
+
+            sidebarControlButtons.forEach((button) => {
+              if (!button.getAttribute('hasListener')) {
+                button.addEventListener(
+                  'click',
+                  sidebarControlButtonClickHandler
+                )
+                button.setAttribute('hasListener', 'true')
+              }
+            })
+
+            // Listen to facet value changes
+            const facetCheckboxes = document.querySelectorAll(
+              '.blm-category-filter-item__checkbox'
+            )
+            if (facetCheckboxes) {
+              facetCheckboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                  const urlParameters = new URLSearchParams(
+                    window.location.search
+                  )
+
+                  if (urlParameters.has(PARAMETER_NAME_SIZE)) {
+                    this.infiniteSize = Number.parseInt(
+                      urlParameters.get(PARAMETER_NAME_SIZE) as string
+                    )
+                  } else {
+                    this.infiniteSize = config.get('itemsPerPage')
+                  }
+
+                  const scrollIndicator = document.querySelector(
+                    '.blm-scroll-indicator'
+                  ) as HTMLElement
+                  if (scrollIndicator) {
+                    scrollIndicator.innerHTML = ''
+                    const loaderElement = document.createElement('div')
+                    loaderElement.classList.add('blm-scroll-indicator__loading')
+                    scrollIndicator.appendChild(loaderElement)
+                  }
+
+                  const checkedCheckboxes = document.querySelectorAll(
+                    '.blm-category-filter-item__checkbox:checked'
+                  )
+
+                  this.checkedFacets = checkedCheckboxes
+                    ? (Array.from(
+                        checkedCheckboxes
+                      ) as Array<HTMLInputElement>).reduce(
+                        (
+                          all: {[key: string]: Array<string>},
+                          current: HTMLInputElement
+                        ) => {
+                          return {
+                            ...all,
+                            [current.name]: all[current.name]
+                              ? [...all[current.name], current.value]
+                              : [current.value]
+                          }
+                        },
+                        {}
+                      )
+                    : {}
+
+                  /* 
+                    If the checkedFacets is
+                    { colors: ["gray", "black"], reviews: ["4.7", "5.0"] }
+
+                    then we're setting these values in the URL in this format:
+                    &fq=colors%3Agray%2Cblack&fq=reviews%3A4.7%2C5.0
+
+                    because it's easier to read it like when we're performing the search,
+                    as it would be if we'd storing it in the format how we're using them
+                    in the API call's URL parameter list
+                  */
+                  DomUtils.updateMultipleInstanceParametersInUrl(
+                    PARAMETER_NAME_FACETS,
+                    {
+                      ...this.checkedFacets,
+                      ...this.buildPriceUrlParameterObject()
+                    }
+                  )
+                  DomUtils.updateParameterInUrl(PARAMETER_NAME_PAGE, '1')
+                  this.initiateSearch(
+                    new URLSearchParams(window.location.search),
+                    config
+                  )
+                })
+              })
+            }
+          }
+
+          // When we're going back in history, we want to initiate the search again according to the actual URL state
+          window.onpopstate = () => {
+            this.initiateSearch(
+              new URLSearchParams(window.location.search),
+              config
+            )
+          }
+
+          // Listen to page size select field changes
+          const sizeSelector = document.querySelector('#sort-size')
+          if (sizeSelector) {
+            sizeSelector.addEventListener('change', (event: any) => {
+              DomUtils.updateParameterInUrl(
+                PARAMETER_NAME_SIZE,
+                event.target.value
+              )
+              DomUtils.updateParameterInUrl(PARAMETER_NAME_PAGE, '1')
+              const urlParameters = new URLSearchParams(window.location.search)
+              if (urlParameters.has(PARAMETER_NAME_SIZE)) {
+                this.infiniteSize = Number.parseInt(
+                  urlParameters.get(PARAMETER_NAME_SIZE) as string
+                )
+              } else {
+                this.infiniteSize = config.get('itemsPerPage')
+              }
+              this.initiateSearch(
+                new URLSearchParams(window.location.search),
+                config
+              )
+            })
+          }
+
+          // Listen to sorting select field changes
+          const sortSelector = document.querySelector('#sort-by')
+          if (sortSelector) {
+            sortSelector.addEventListener('change', (event: any) => {
+              DomUtils.updateParameterInUrl(
+                PARAMETER_NAME_SORT,
+                event.target.value
+              )
+              this.initiateSearch(
+                new URLSearchParams(window.location.search),
+                config
+              )
+            })
+          }
+
+          // Listen to pagination events
+          const paginationContainer = document.querySelector(
+            '.blm-category-pagination__pages'
+          )
+          if (paginationContainer) {
+            paginationContainer.addEventListener('click', (event) => {
+              const clickedPaginationValue = (event.target as HTMLButtonElement)
+                .dataset.value
+
+              if (clickedPaginationValue) {
+                switch ((event.target as HTMLButtonElement).dataset.value) {
+                  case 'previous':
+                    DomUtils.decrementParameterInUrl(PARAMETER_NAME_PAGE)
+                    break
+                  case 'next':
+                    DomUtils.incrementParameterInUrl(PARAMETER_NAME_PAGE)
+                    break
+                  default:
+                    DomUtils.updateParameterInUrl(
+                      PARAMETER_NAME_PAGE,
+                      clickedPaginationValue
+                    )
+                }
+                this.initiateSearch(
+                  new URLSearchParams(window.location.search),
+                  config
+                )
+                window.scrollTo(0, this.data.resultsContainerElement.offsetTop)
+              }
+            })
+          }
+
+          // Facet
+          const loadMore = document.getElementsByClassName(
+            'blm-category-load-more'
+          )
+
+          const numberOfDisplayedFacets: number = config.get(
+            'initialNumberOfFacets'
+          )
+          const loadMoreFacetLinkElement = document.querySelector(
+            '.blm-load-more-facet'
+          ) as HTMLElement
+          const loadMoreFacet = () => {
+            let i = 0
+            for (const item of document.querySelectorAll(
+              `.blm-category-filter:not([style*="display: block"])`
+            )) {
+              if (i < numberOfDisplayedFacets) {
+                item.setAttribute('style', 'display: block')
+              }
+              i++
+            }
+
+            if (
+              document.querySelectorAll(
+                `.blm-category-filter:not([style*="display: block"])`
+              ).length === 0
+            ) {
+              loadMoreFacetLinkElement?.classList.add('blm-hide')
+            }
+          }
+
+          loadMoreFacetLinkElement?.addEventListener('click', loadMoreFacet)
+          // Show the initial number of facets on load
+          loadMoreFacet()
+
+          const initialNumberOfFacetValues = config.get(
+            'initialNumberOfFacetValues'
+          )
+          document
+            .querySelectorAll(
+              `.blm-category-filter-item:nth-child(-n+${initialNumberOfFacetValues})`
+            )
+            .forEach((item: any) => (item.style.display = 'block'))
+
+          const facetMoreLoader = function () {
+            let showFilterItems = initialNumberOfFacetValues
+            const incrementFilterBy = initialNumberOfFacetValues
+            return function (e: any) {
+              const itemIndex = e.target.getAttribute('data-item')
+              const facetBlock: any = document.getElementById(
+                'blm-facet-block-item-' + itemIndex
+              )
+              const filterListItems = facetBlock.getElementsByTagName('li')
+              for (
+                let i = showFilterItems;
+                i < showFilterItems + incrementFilterBy;
+                i++
+              ) {
+                if (filterListItems[i]) {
+                  filterListItems[i].style.display = 'block'
+                }
+              }
+              showFilterItems += incrementFilterBy
+              if (showFilterItems >= filterListItems.length) {
+                e.target.style.display = 'none'
+              }
+            }
+          }
+          if (loadMore !== null) {
+            Array.prototype.forEach.call(loadMore, function (element) {
+              const initFacetBlock = facetMoreLoader()
+              element.addEventListener('click', (e: any) => {
+                initFacetBlock(e)
+              })
+            })
+          }
+
+          // Swatch
+
+          loadSwatch = function () {
+            document
+              .querySelectorAll('.blm-category-swatch-image:nth-child(-n+1)')
+              .forEach((item: any) => (item.style.display = 'block'))
+
+            document
+              .querySelectorAll(
+                '.blm-category-swatch-container__swatch:nth-child(-n+1)'
+              )
+              .forEach((item: any) => item.classList.add('active'))
+
+            const results = document.querySelectorAll('.blm-category__result')
+
+            results.forEach(function (result) {
+              const swatchContainer = result.querySelectorAll(
+                '.blm-category-swatch-container'
+              )
+              swatchContainer.forEach(function (swatchItems) {
+                const swatchItem = swatchItems.querySelectorAll(
+                  '.blm-category-swatch-container__swatch'
+                )
+                swatchItem.forEach(function (swatch, indexSwatch) {
+                  swatch.addEventListener('mouseover', function () {
+                    swatchItem.forEach(function (itemSwatch) {
+                      itemSwatch.classList.remove('active')
+                    })
+                    swatch.classList.add('active')
+
+                    const imageContainer = result.querySelectorAll(
+                      '.blm-category-image-container'
+                    )
+                    imageContainer.forEach(function (imageItems) {
+                      const imageItem = imageItems.querySelectorAll(
+                        '.blm-category-swatch-image'
+                      )
+                      imageItem.forEach(function (image: any, i) {
+                        image.style.display = 'none'
+                        if (indexSwatch === i) {
+                          image.style.display = 'block'
+                        }
+                      })
+                    })
+                  })
+                })
+              })
+            })
+          }
+          loadSwatch()
+        }
+      }
+
+      const observer = new MutationObserver(callback)
+      observer.observe(
+        this.data.resultsContainerElement,
+        mutationObserverConfig
+      )
+    }
+
+    return this
+  }
+
+  buildPriceUrlParameterObject(): {price?: string} {
+    const priceRangeLowerBoundaryInput = document.querySelector(
+      '.blm-price-range-input--lower'
+    ) as HTMLInputElement
+    const priceRangeUpperBoundaryInput = document.querySelector(
+      '.blm-price-range-input--upper'
+    ) as HTMLInputElement
+
+    let lowerBoundary = parseFloat(priceRangeLowerBoundaryInput.value)
+    let upperBoundary = parseFloat(priceRangeUpperBoundaryInput.value)
+
+    if (lowerBoundary === upperBoundary) {
+      if (upperBoundary === this.priceRangeMaxValue + this.priceRangeStep) {
+        lowerBoundary -= this.priceRangeStep
+      } else {
+        upperBoundary += this.priceRangeStep
+      }
+    }
+
+    if (
+      upperBoundary === this.priceRangeMaxValue + this.priceRangeStep &&
+      Number(lowerBoundary) === 0
+    ) {
+      return {}
+    }
+
+    return {
+      price: `${lowerBoundary},${
+        upperBoundary === this.priceRangeMaxValue + this.priceRangeStep
+          ? '*'
+          : upperBoundary
+      }`
+    }
+  }
+
+  async initiateScroll(
+    urlParameters: URLSearchParams,
+    config: CategoryConfig
+  ): Promise<void> {
+    const parameters: CategoryConfigParameters = {
+      q:
+        config.get('urlParameters').q ||
+        (urlParameters.get(config.get('defaultSearchParameter')) as string) ||
+        (config.get('categoryId') as string),
+      start: this.infiniteSize
+    }
+
+    const facets: {[key: string]: Array<string>} = urlParameters
+      .getAll(PARAMETER_NAME_FACETS)
+      .reduce(
+        (all, current) => ({
+          ...all,
+          [current.split(':')[0]]: current.split(':')[1].split(',')
+        }),
+        {}
+      )
+
+    if (Object.keys(facets).length) {
+      /*
+          And we're setting the 'fq' parameter value as:
+          'colors:"gray" OR "black"&fq=reviews:"4.7" OR "5.0"'
+
+          so we can use multiple parameter instances in the API call
+        */
+      parameters.fq = Object.keys(facets)
+        .map((facetName: string) => {
+          if (facetName === 'price') {
+            return `${facetName}:[${facets[facetName]
+              .map((value: string) => `${value}`)
+              .join(' TO ')}]`
+          } else {
+            return `${facetName}:${facets[facetName]
+              .map((value: string) => `"${value}"`)
+              .join(' OR ')}`
+          }
+        })
+        .join('&fq=')
+    }
+
+    const allParameters: {[key: string]: any} = {...parameters}
+    for (const [key, value] of urlParameters.entries()) {
+      if (!Object.keys(parameters).includes(key)) {
+        allParameters[key] = value
+      }
+    }
+
+    const scrollResults = await ApiCore.getCategoryData(
+      (allParameters as unknown) as CategoryConfigParameters
+    )
+
+    const scrollLoader = document.querySelector(
+      '.blm-scroll-indicator__loading'
+    ) as HTMLElement
+    if (
+      scrollResults.number_of_results < config.get('itemsPerPage') &&
+      scrollLoader
+    ) {
+      scrollLoader.remove()
+    }
+
+    const scrollIndicator = document.querySelector(
+      '.blm-scroll-indicator'
+    ) as HTMLElement
+
+    const startCount = parameters.start as number
+    if (scrollResults.number_of_results <= startCount) {
+      const areBothZero =
+        scrollResults.number_of_results === 0 && startCount === 0
+      scrollIndicator.innerHTML = areBothZero ? '' : 'No more results'
+      return
+    }
+
+    const searchResults = document.querySelector(
+      '.blm-category__results'
+    ) as HTMLElement
+
+    const infiniteScrollTemplate =
+      config.get('productListTemplate') || CategoryModule.productListTemplate
+    if (scrollResults.start >= config.get('itemsPerPage')) {
+      scrollResults.defaultCurrency =
+        window.bloomreachDefaultCurrency || DEFAULT_CURRENCY
+
+      scrollResults.defaultMaxColorSwatches = MAX_COLOR_SWATCHES
+      scrollResults.mobileView = mobileView
+
+      const displayResults = ejs.render(infiniteScrollTemplate, scrollResults)
+      searchResults?.insertAdjacentHTML('beforeend', displayResults)
+      loadSwatch()
+    }
+    this.infiniteSize += config.get('itemsPerPage')
+  }
+
+  async initiateSearch(
+    urlParameters: URLSearchParams,
+    config: CategoryConfig
+  ): Promise<void> {
+    const parameters: CategoryConfigParameters = {
+      q:
+        config.get('urlParameters').q ||
+        (urlParameters.get(config.get('defaultSearchParameter')) as string) ||
+        (config.get('categoryId') as string)
+    }
+
+    /*
+      We're reading facet values from the URL in this easy-to-read format:
+      { colors: ["gray", "black"], reviews: ["4.7", "5.0"] }
+
+      so we can add this to the result set to be able to easily use it in the template
+    */
+    const facets: {[key: string]: Array<string>} = urlParameters
+      .getAll(PARAMETER_NAME_FACETS)
+      .reduce(
+        (all, current) => ({
+          ...all,
+          [current.split(':')[0]]: current.split(':')[1].split(',')
+        }),
+        {}
+      )
+
+    if (Object.keys(facets).length) {
+      /*
+        And we're setting the 'fq' parameter value as:
+        'colors:"gray" OR "black"&fq=reviews:"4.7" OR "5.0"'
+
+        so we can use multiple parameter instances in the API call
+      */
+      parameters.fq = Object.keys(facets)
+        .map((facetName: string) => {
+          if (facetName === 'price') {
+            return `${facetName}:[${facets[facetName]
+              .map((value: string) => `${value}`)
+              .join(' TO ')}]`
+          } else {
+            return `${facetName}:${facets[facetName]
+              .map((value: string) => `"${value}"`)
+              .join(' OR ')}`
+          }
+        })
+        .join('&fq=')
+    }
+
+    if (urlParameters.has(PARAMETER_NAME_SIZE)) {
+      parameters.rows = Number.parseInt(
+        urlParameters.get(PARAMETER_NAME_SIZE) as string
+      )
+    } else {
+      parameters.rows = config.get('itemsPerPage')
+    }
+
+    if (urlParameters.has(PARAMETER_NAME_SORT)) {
+      parameters.sort = urlParameters.get(PARAMETER_NAME_SORT) as SortByOptions
+    }
+
+    if (urlParameters.has(PARAMETER_NAME_PAGE)) {
+      parameters.start =
+        (Number.parseInt(urlParameters.get(PARAMETER_NAME_PAGE) as string) -
+          1) *
+        parameters.rows
+    }
+
+    const allParameters: {[key: string]: any} = {...parameters}
+    for (const [key, value] of urlParameters.entries()) {
+      if (!Object.keys(parameters).includes(key)) {
+        allParameters[key] = value
+      }
+    }
+
+    const results = await ApiCore.getCategoryData(
+      (allParameters as unknown) as CategoryConfigParameters
+    )
+
+    const scrollLoader = document.querySelector(
+      '.blm-scroll-indicator__loading'
+    ) as HTMLElement
+    if (
+      results.number_of_results < config.get('itemsPerPage') &&
+      scrollLoader
+    ) {
+      scrollLoader.remove()
+    }
+
+    // Resetting these parameters for the template so the fields can keep up with them
+    if (urlParameters.has(PARAMETER_NAME_SORT)) {
+      results.sort = urlParameters.get(PARAMETER_NAME_SORT) as SortByOptions
+    }
+    if (urlParameters.has(PARAMETER_NAME_SIZE)) {
+      results.size = Number.parseInt(
+        urlParameters.get(PARAMETER_NAME_SIZE) as string
+      )
+    } else {
+      results.size = Number.parseInt(config.get('itemsPerPage').toString())
+    }
+    if (urlParameters.has(PARAMETER_NAME_PAGE)) {
+      results.page = Number.parseInt(
+        urlParameters.get(PARAMETER_NAME_PAGE) as string
+      )
+    }
+
+    results.checkedFacets = facets
+
+    if (results.priceRanges) {
+      this.priceRangeMaxValue = Number(results.priceRanges.slice(-1)[0].start)
+
+      const startValue = Number(
+        results.priceRanges[0].start === '*' ? 0 : results.priceRanges[0].start
+      )
+      this.priceRangeStep = Number(results.priceRanges[0].end) - startValue
+      this.maxSlideRange = this.priceRangeMaxValue + this.priceRangeStep
+
+      results.priceRangeFacet = {
+        start: startValue,
+        step: this.priceRangeStep,
+        end: this.maxSlideRange
+      }
+    }
+
+    results.paginationData = CategoryModule.buildPaginationDataForResults(
+      results
+    )
+    results.originalQuery = urlParameters.get(
+      config.get('defaultSearchParameter')
+    ) as string
+
+    results.defaultCurrency =
+      window.bloomreachDefaultCurrency || DEFAULT_CURRENCY
+
+    results.isFiltersPanelOpened = urlParameters.has(
+      PARAMETER_NAME_FILTERS_PANEL
+    )
+
+    results.defaultMaxColorSwatches = MAX_COLOR_SWATCHES
+    results.mobileView = mobileView
+
+    this.data.resultsContainerElement.innerHTML = ejs.render(
+      this.data.template.replace(
+        '%%-PRODUCT_LIST_TEMPLATE-%%',
+        config.get('productListTemplate') || CategoryModule.productListTemplate
+      ) as string,
+      results
+    )
+  }
+
+  private static buildPaginationDataForResults(
+    results: CategoryData
+  ): Array<PaginationNode> {
+    const pageSize = results.size || 1
+
+    if (results.number_of_results <= pageSize) {
+      return []
+    }
+
+    const page = Math.ceil((results.start + 1) / pageSize)
+    const numberOfAllPages = Math.ceil(results.number_of_results / pageSize)
+    const beforeNumbers = Array(page - 1)
+      .fill(null)
+      .map((_, index) => index + 1)
+      .slice(-MAX_PAGINATION_NUMBER_BEFORE_CURRENT)
+    const afterNumbers = Array(numberOfAllPages - page)
+      .fill(null)
+      .map((_, index) => index + (page + 1))
+      .slice(0, MAX_PAGINATION_NUMBER_AFTER_CURRENT)
+
+    return [
+      ...(page > 1 ? [{value: 'previous', label: '&larr;'}] : []),
+      ...(page - 1 > MAX_PAGINATION_NUMBER_BEFORE_CURRENT
+        ? [
+            {
+              label: '&hellip;',
+              value: (
+                page -
+                MAX_PAGINATION_NUMBER_BEFORE_CURRENT -
+                1
+              ).toString()
+            }
+          ]
+        : []),
+      ...beforeNumbers.map((number) => ({value: number.toString()})),
+      {value: page.toString(), disabled: true, active: true},
+      ...afterNumbers.map((number) => ({value: number.toString()})),
+      ...(page + MAX_PAGINATION_NUMBER_AFTER_CURRENT < numberOfAllPages
+        ? [
+            {
+              label: '&hellip;',
+              value: (page + MAX_PAGINATION_NUMBER_AFTER_CURRENT + 1).toString()
+            }
+          ]
+        : []),
+      ...(page < numberOfAllPages ? [{value: 'next', label: '&rarr;'}] : [])
+    ]
+  }
+
+  static template = /*html*/ `
+    <div class="blm-category <% if (config.get('areFacetsIncluded')) { %>with-facets<% } %>">
+        <% if (config.get('areFacetsIncluded') && facets.length) { %>
+        <aside class="blm-category-sidebar">
+
+          <button class="blm-category-control-button blm-category-control-button--sidebar">
+            Filter
+            <svg viewBox="0 0 14.8 14.8" class="blm-category-control-button__icon" focusable="false"><path d="M1.6 14.8V0m6 14.8V1.6m5.6 13.2V0" fill="none" stroke="#000" stroke-miterlimit="10"></path><circle cx="1.6" cy="7.4" r="1.6"></circle><circle cx="13.2" cy="10.4" r="1.6"></circle><circle cx="7.6" cy="1.6" r="1.6"></circle></svg>
+          </button>
+
+          <div class="blm-category-sidebar-content <% if (locals.isFiltersPanelOpened && isFiltersPanelOpened) { %>blm-open<% } %>">
+
+            <button class="blm-category-control-button blm-category-control-button--sidebar blm-category-control-button--active">
+              Done
+              <svg viewBox="0 0 14.8 14.8" class="blm-category-control-button__icon" focusable="false"><path class="blm-category-control-button__icon-path" d="M1.6 14.8V0m6 14.8V1.6m5.6 13.2V0" fill="none" stroke="#000" stroke-miterlimit="10"></path><circle cx="1.6" cy="7.4" r="1.6"></circle><circle cx="13.2" cy="10.4" r="1.6"></circle><circle cx="7.6" cy="1.6" r="1.6"></circle></svg>
+            </button>
+
+            <div class="blm-category-filter">
+              <h4 class="blm-category-filter-title">Price</h4>
+              <div class="blm-price-range-container">
+                <div class="blm-range-slider">
+                  <input 
+                    value="<%= checkedFacets.price ? checkedFacets.price[0] : priceRangeFacet.start %>" 
+                    min="<%- priceRangeFacet.start %>" 
+                    max="<%- priceRangeFacet.end %>"
+                    step="<%- priceRangeFacet.step %>"
+                    type="range" 
+                    class="blm-price-range-input blm-price-range-input--lower"
+                  >
+                  <span class="blm-price-range-slider-rail"></span>
+                  <input
+                    value="<%= checkedFacets.price ? (checkedFacets.price[1] === '*' ? priceRangeFacet.end : checkedFacets.price[1]) : priceRangeFacet.end %>"
+                    min="<%- priceRangeFacet.start %>"
+                    max="<%- priceRangeFacet.end %>"
+                    step="<%- priceRangeFacet.step %>" 
+                    type="range" 
+                    class="blm-price-range-input blm-price-range-input--upper"
+                  >
+                </div>
+                <div class="blm-range-slider__values">
+                  <span class="blm-range-slider__values--min">
+                    <% if (config.get('formatMoney')) { %>
+                      <%= checkedFacets.price ? config.get('formatMoney')(checkedFacets.price[0] * 100) : config.get('formatMoney')(priceRangeFacet.start * 100) %>
+                    <% } else { %>
+                      <%= defaultCurrency %><%= checkedFacets.price ? checkedFacets.price[0] : priceRangeFacet.start %>
+                    <% } %>
+                  </span>
+                  <% if (checkedFacets.price) { %>
+                  <span class="blm-range-slider__values--max">
+                    <% if (config.get('formatMoney')) { %>
+                      <%= checkedFacets.price ? (checkedFacets.price[1] === '*' ? config.get('formatMoney')((priceRangeFacet.end - priceRangeFacet.step) * 100) + '+' : config.get('formatMoney')(checkedFacets.price[1] * 100)) : config.get('formatMoney')(priceRangeFacet.start * 100) %>
+                    <% } else { %>
+                      <%= defaultCurrency %><%= checkedFacets.price ? (checkedFacets.price[1] === '*' ? (priceRangeFacet.end - priceRangeFacet.step) + '+' : checkedFacets.price[1]) : priceRangeFacet.start %>
+                    <% } %>
+                  </span>
+                  <% } else { %>
+                  <span class="blm-range-slider__values--max">
+                    <% if (config.get('formatMoney')) { %>
+                      <%= config.get('formatMoney')((priceRangeFacet.end - priceRangeFacet.step) * 100) + '+' %>
+                    <% } else { %>
+                      <%= defaultCurrency %><%= (priceRangeFacet.end - priceRangeFacet.step) + '+' %>
+                    <% } %>
+                  </span>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+
+            <% facets.forEach(function(facet, facetIndex) { %>
+              <% if (facet.section.length > 0) { %>
+              <div class="blm-category-filter" id="blm-facet-block-item-<%= facetIndex %>">
+                <h4 class="blm-category-filter-title"><%- facet.title %></h4>
+                <ul class="blm-category-filter-items">
+                  <% facet.section.forEach(function(item) { %>
+                  <li class="blm-category-filter-item">
+                    <input
+                      type="checkbox"
+                      <% if (facet.original_title in checkedFacets && checkedFacets[facet.original_title].includes(item.id)) { %>checked<% } %>
+                      name="<%- facet.original_title %>"
+                      value="<%- item.id %>"
+                      id="<%- facet.original_title + '[' + item.name + ']' %>"
+                      class="blm-category-filter-item__checkbox"
+                    />
+                    <label class="blm-category-filter-item__name" for="<%- facet.original_title + '[' + item.name + ']' %>"><%- item.name %></label>
+                    <% if (!config.get('displayVariants')) { %>
+                    <span class="blm-category-filter-item__badge"><%- item.count %></span>
+                    <% } %>
+                  </li>
+                  <% }); %>
+                </ul>
+                <% if (facet.section.length > config.get('initialNumberOfFacetValues')) { %>
+                <div class="blm-category-load-more" data-item="<%= facetIndex %>">+ More</div>
+                <% } %>
+              </div>
+              <% } %>
+            <% }); %>
+
+            <% if (facets[0].section.length) { %>
+            <div class="blm-load-more-facet">+ More </div>
+            <% } %>
+
+          </div>
+        </aside>
+        <% } %>
+        <section class="blm-category-main">
+          <div class="blm-category-toolbar">
+            <% if (locals.number_of_results && number_of_results > 0) { %>
+            <h2 class="blm-category-toolbar__title">
+              Showing <%- start + 1 %> - <%- Math.min(start + products.length, number_of_results) %> of <%- number_of_results %> products
+            </h2>
+            <div class="blm-category-toolbar-options">
+              <span class="blm-category-toolbar-options blm-category-toolbar-options--page-size">
+                <label for="sort-size" class="blm-category-toolbar-options__label">Size: </label>
+                <select
+                  name="sort-size"
+                  id="sort-size"
+                  class="blm-category-toolbar-options__select"
+                >
+                  <% for (let i = 16; i <= 48; i += 4) { %>
+                    <option value="<%- i %>" <% if (locals.size && size === i) { %>selected<% } %>><%- i %></option>
+                  <% } %>
+                </select>
+              </span>
+              <span class="blm-category-toolbar-options blm-category-toolbar-options--sort-by">
+                <label for="sort-by" class="blm-category-toolbar-options__label">Sort By: </label>
+                <select
+                  name="sort-by"
+                  id="sort-by"
+                  class="blm-category-toolbar-options__select"
+                >
+                  <% config.get('sortingOptions').forEach(function(option) { %>
+                    <option value="<%- option.value %>" <% if (locals.sort && sort === option.value) { %>selected<% } %>><%- option.label %></option>
+                  <% }) %>
+                </select>
+              </span>
+            </div>
+            <% } else { %>
+            <h2 class="blm-category-toolbar__title">
+              No results found
+            </h2>
+            <% } %>
+            
+          </div>
+          <% if (products.length) { %>
+          <div class="blm-category__results">
+            %%-PRODUCT_LIST_TEMPLATE-%%
+          </div>
+          <% } %>
+          
+          <% if (!locals.mobileView || !mobileView.matches) { %>
+              <% if (!config.get('infiniteScroll') && paginationData.length > 0) { %>
+              <div class="blm-category-pagination">
+                <ul class="blm-category-pagination__pages">
+                  <% paginationData.forEach(paginationNode => { %>
+                    <li class="blm-category-pagination__page">
+                      <button <% if (paginationNode.disabled) { %>disabled<% } %> class="blm-category-pagination__page-link <% if (paginationNode.active) { %>blm-category-pagination__page-link--active<% } %>" data-value="<%- paginationNode.value %>"
+                        ><%- paginationNode.label ?? paginationNode.value %></button
+                      >
+                    </li>
+                  <% }) %>
+                </ul>
+              </div>
+              <% } %>
+          <% } %>
+        </section>
+      </div>
+  `
+
+  static productListTemplate = /* html */ `
+    <% products.forEach(function(product) { %>
+      <div class="blm-category__result" <% if (product.variant_name) { %>title="<%- product.variant_name %>"<% } %>>
+        <div class="blm-category-image-container">
+          <% if (product.variants && product.variants.length > 1) { %>
+            <% product.variants.forEach(function(variant) { %>
+            <div class="blm-category-swatch-image fade">
+              <img
+                class="blm-category-image-container__image"
+                alt="title"
+                src="<%= variant.image %>"
+              />
+            </div>
+            <% }); %>
+          <% } else { %>
+            <div class="blm-category-swatch-image fade">
+              <img
+                class="blm-category-image-container__image"
+                alt="title"
+                src="<%= product.image %>"
+              />
+            </div>
+          <% } %>
+        </div>
+        <div class="blm-category-details-container">
+          <div class="blm-category-details-title-container">
+            <a href="<%= product.link %>" class="blm-category-details-container__title"
+              ><%- product.title %></a
+            >
+          </div>                   
+          <p class="blm-category-details-container__price">
+            <% if( product.final_price ) { %>
+              <% if (config.get('formatMoney')) { %>
+                <%= config.get('formatMoney')(product.final_price.toFixed(2) * 100) %>
+              <% } else { %>
+                <%= defaultCurrency %><%= product.final_price.toFixed(2) %>
+              <% } %>
+            <% } %>
+            <span <% if (product.final_price) { %>class="blm-category-details-container__price--strike-through"<% } %>>
+              <% if (config.get('formatMoney')) { %>
+                <%= config.get('formatMoney')(product.price.toFixed(2) * 100) %>
+              <% } else { %>
+                <%= defaultCurrency %><%= product.price.toFixed(2) %>
+              <% } %>
+            </span>
+          </p>
+          
+        </div>
+
+        <% if (product.variants && product.variants.length > 1) { %>
+          <ul class="blm-category-swatch-container">
+          <% product.variants.slice(0, defaultMaxColorSwatches || 0).forEach(function(variant) { %>
+            <li
+              class="blm-category-swatch-container__swatch"
+              style="background-image: url('<%= variant.image %>')"
+            ></li>
+          <% }); %>
+          </ul>
+
+          <% if (product.variants.length > defaultMaxColorSwatches || 0) { %>
+          <small class="blm-category-swatch-colors">(Colors) <%- product.variants.length %></small>
+          <% } %>
+        <% } %>
+      </div>
+    <% }); %>
+  `
+}
