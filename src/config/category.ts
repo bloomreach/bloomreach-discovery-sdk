@@ -11,7 +11,14 @@ export class CategoryConfig extends BaseConfig<MandatoryCategoryConfigParameters
     const configParameters = buildStaticCategoryConfigParameters()
     configParameters.urlParameters = {
       ...configParameters.urlParameters,
-      ...parameters
+      ...parameters,
+      ...('brSeg' in parameters
+        ? {
+            url: `${configParameters.urlParameters.url}${encodeURIComponent(
+              `&brSeg=${parameters.brSeg?.replace('seg:', '')}`
+            )}`
+          }
+        : {})
     }
     return new CategoryConfig(configParameters)
   }

@@ -22,11 +22,15 @@ export interface ProductSearchData {
   keywordRedirect?: Keywords
   checkedFacets?: {[key: string]: Array<string>}
   priceRanges?: PriceRange[]
-  priceRangeFacet?: {start: number; end: number; step: number}
+  priceRangeFacet?: {start: number; end: number}
+  maxPrice?: number
+  minPrice?: number
   defaultCurrency?: string
   isFiltersPanelOpened?: boolean
   mobileView?: {matches: boolean}
   defaultMaxColorSwatches?: number
+  formatMoney?: (price: number) => string
+  escapeSpecialCharacters?: (value: string) => string
 }
 
 export interface Keywords {

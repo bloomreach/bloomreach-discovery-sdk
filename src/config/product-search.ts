@@ -11,7 +11,14 @@ export class ProductSearchConfig extends BaseConfig<MandatoryProductSearchConfig
     const configParameters = buildStaticProductSearchConfigParameters()
     configParameters.urlParameters = {
       ...configParameters.urlParameters,
-      ...parameters
+      ...parameters,
+      ...('brSeg' in parameters
+        ? {
+            url: `${configParameters.urlParameters.url}${encodeURIComponent(
+              `&brSeg=${parameters.brSeg?.replace('seg:', '')}`
+            )}`
+          }
+        : {})
     }
     return new ProductSearchConfig(configParameters)
   }

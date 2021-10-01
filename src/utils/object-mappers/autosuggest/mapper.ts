@@ -14,6 +14,7 @@ export class AutosuggestMapper {
       terms: [
         ...(responseData.response.suggestions
           ? responseData.response.suggestions.map((term) => ({
+              ...term,
               text: term.q,
               displayText: term.dq,
               link: `${config.get('searchPageUrl')}?${config.get(
@@ -23,6 +24,7 @@ export class AutosuggestMapper {
                 ? {
                     categories: term.filters
                       .map((category) => ({
+                        ...category,
                         name: category.name,
                         value: category.value,
                         type: category.key
@@ -36,6 +38,7 @@ export class AutosuggestMapper {
       productSuggestions: [
         ...(responseData.response.products
           ? responseData.response.products.map((product) => ({
+              ...product,
               id: product.pid,
               image: product.thumb_image,
               title: product.title,

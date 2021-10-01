@@ -23,7 +23,8 @@ export class DomUtils {
   ): void {
     const defaultOptions = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      valueSerializer: (parameterValue: any) => parameterValue.toString(),
+      valueSerializer: (parameterValue: any) =>
+        parameterValue.toString().replace(/"/g, '\\"'),
       nameValueSeparator: ':'
     }
     const options = {
@@ -59,13 +60,16 @@ export class DomUtils {
     if (typeof newValue === 'function') {
       urlParameters.set(
         parameterName,
-        newValue(urlParameters.get(parameterName) as string)
+        newValue(urlParameters.get(parameterName) as string).replace(
+          /"/g,
+          '\\"'
+        )
       )
     } else {
       if (newValue === '') {
         urlParameters.delete(parameterName)
       } else {
-        urlParameters.set(parameterName, newValue)
+        urlParameters.set(parameterName, newValue.replace(/"/g, '\\"'))
       }
     }
 

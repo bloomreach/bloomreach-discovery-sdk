@@ -1,4 +1,4 @@
-import {generateRequestId} from '../utils/api'
+import {generateRequestId} from '../utils/general'
 import {
   MandatoryAutosuggestConfigParameters,
   MandatoryCategoryConfigParameters,
@@ -134,7 +134,8 @@ export const buildStaticCategoryConfigParameters = (): MandatoryCategoryConfigPa
       rows: bloomreachConnector.config.category.items_per_page,
       start: DEFAULT_START,
       q: '',
-      'facet.range': 'price'
+      'facet.range': 'price',
+      'stats.field': 'price'
     },
     displayVariants: bloomreachConnector.config.category.display_variants,
     categoryId: bloomreachConnector.config.category.category_id,
@@ -189,7 +190,8 @@ export const buildStaticProductSearchConfigParameters = (): MandatoryProductSear
       rows: bloomreachConnector.config.search.items_per_page,
       start: DEFAULT_START,
       q: '',
-      'facet.range': 'price'
+      'facet.range': 'price',
+      'stats.field': 'price'
     },
     displayVariants: bloomreachConnector.config.search.display_variants,
     noEncodeParameters: ['_br_uid_2', 'sort', 'fq'],

@@ -71,6 +71,9 @@ export interface MandatoryCategoryUrlParameters extends CommonUrlParameters {
   sort?: SortByOptions
   fq?: string
   'facet.range'?: string
+  'stats.field'?: string
+  brSeg?: string
+  segment?: string
 }
 
 export interface MandatoryCategoryConfigParameters
@@ -99,6 +102,8 @@ export interface CategoryConfigParameters {
   start?: number
   fq?: string
   sort?: SortByOptions
+  brSeg?: string
+  segment?: string
 }
 
 export interface MandatoryProductSearchUrlParameters
@@ -113,6 +118,9 @@ export interface MandatoryProductSearchUrlParameters
   sort?: SortByOptions
   fq?: string
   'facet.range'?: string
+  'stats.field'?: string
+  brSeg?: string
+  segment?: string
 }
 
 export interface MandatoryProductSearchConfigParameters
@@ -141,6 +149,8 @@ export interface ProductSearchConfigParameters {
   start?: number
   sort?: SortByOptions
   fq?: string
+  brSeg?: string
+  segment?: string
 }
 
 export interface MandatoryPathwaysAndRecommendationsUrlParameters
@@ -148,6 +158,7 @@ export interface MandatoryPathwaysAndRecommendationsUrlParameters
   fields: string
   rows: number
   start: number
+  brSeg?: string
 }
 
 export interface MandatoryCategoryWidgetUrlParameters

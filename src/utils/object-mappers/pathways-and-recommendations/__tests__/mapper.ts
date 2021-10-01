@@ -52,8 +52,12 @@ test('PathwaysAndRecommendations mapper builds the correct data object from non-
           "id": "83554",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/83554_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/83554",
+          "pid": "83554",
           "price": 18.86,
+          "sale_price": 12.26,
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/83554_XXX_v1.tif",
           "title": "White Waffle Weave Cotton Bath Towel",
+          "url": "https://pacifichome.bloomreach.com/products/83554",
         },
       ],
       "widgetMetadata": Object {

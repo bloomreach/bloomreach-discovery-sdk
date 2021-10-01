@@ -12,6 +12,7 @@ export class PathwaysAndRecommendationsMapper {
       products: [
         ...(responseData.response.docs
           ? responseData.response.docs.map((product) => ({
+              ...product,
               id: product.pid,
               image: product.thumb_image,
               title: product.title,

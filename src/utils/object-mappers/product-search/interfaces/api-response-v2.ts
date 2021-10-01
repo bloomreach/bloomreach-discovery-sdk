@@ -1,6 +1,7 @@
 export interface ProductSearchApiResponseV2 {
   response: Response
   facet_counts: FacetCounts
+  stats?: {stats_fields: {price: {min: number; max: number}}}
   category_map: {[key: string]: string}
   autoCorrectQuery?: string
   did_you_mean?: string[]

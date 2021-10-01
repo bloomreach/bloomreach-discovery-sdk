@@ -41,6 +41,12 @@ export class CategoryMapper {
             )
           }
         : {}),
+      ...(responseData?.stats?.stats_fields?.price
+        ? {
+            maxPrice: responseData.stats.stats_fields.price.max,
+            minPrice: responseData.stats.stats_fields.price.min
+          }
+        : {}),
       products: responseData.response.docs.reduce(
         (allProducts, currentProduct) => {
           return [
@@ -81,6 +87,7 @@ export class CategoryMapper {
     productResponse: Doc
   ): Product {
     return {
+      ...productResponse,
       title: productResponse.title,
       image: productResponse.thumb_image,
       link: productResponse.url,
@@ -90,6 +97,7 @@ export class CategoryMapper {
       ...(productResponse.variants
         ? {
             variants: productResponse.variants.map((variant) => ({
+              ...variant,
               sku_color_group: variant.sku_color_group,
               sku_swatch_images: variant.sku_swatch_images,
               sku_thumb_images: variant.sku_thumb_images,

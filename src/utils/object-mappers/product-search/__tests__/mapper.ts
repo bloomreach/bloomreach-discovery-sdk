@@ -492,12 +492,26 @@ test('ProductSearch mapper builds the correct data object from non-empty v2 API 
       "number_of_results": 9,
       "products": Array [
         Object {
+          "brand": "",
+          "description": "Featuring a handwoven rattan seat and back, our Willis chair offers a minimalist twist on a classic. Its wingback silhouette is paired with sleek black metal legs for bold look and a comfy seat.",
           "final_price": 192.99,
           "id": "78330",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/78330",
+          "pid": "78330",
           "price": 296.91,
+          "price_range": Array [
+            296.91,
+            296.91,
+          ],
+          "sale_price": 192.99,
+          "sale_price_range": Array [
+            161.99,
+            161.99,
+          ],
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
           "title": "Black Rattan Willis Wingback Chair",
+          "url": "https://pacifichome.bloomreach.com/products/78330",
           "variants": Array [
             Object {
               "image": "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
@@ -513,12 +527,26 @@ test('ProductSearch mapper builds the correct data object from non-empty v2 API 
           ],
         },
         Object {
+          "brand": "",
+          "description": "Boasting a curved, shapely silhouette, our Blue Linen Paige Round Back Dining Chairs define simple elegance. Crafted of white American oak, they feature a distressed finish that adds to their classic appeal.",
           "final_price": 425.96,
           "id": "35527",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/35527_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/35527",
+          "pid": "35527",
           "price": 655.32,
+          "price_range": Array [
+            655.32,
+            655.32,
+          ],
+          "sale_price": 425.96,
+          "sale_price_range": Array [
+            275.98,
+            275.98,
+          ],
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/35527_XXX_v1.tif",
           "title": "Blue Linen Paige Round Back Dining Chairs, Set of 2",
+          "url": "https://pacifichome.bloomreach.com/products/35527",
           "variants": Array [
             Object {
               "image": "https://pacific-demo-data.bloomreach.cloud/home/images/35527_XXX_v1.tif",
@@ -534,12 +562,26 @@ test('ProductSearch mapper builds the correct data object from non-empty v2 API 
           ],
         },
         Object {
+          "brand": "",
+          "description": "Crafted of solid rubberwood and acacia wood, our petite chairs boast a low profile that makes them ideal for small dining areas. These traditional side chairs are finished in weathered gray with visible wood grain for a textural appeal.",
           "final_price": 108.61,
           "id": "60765",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/60765_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/60765",
+          "pid": "60765",
           "price": 127.68,
+          "price_range": Array [
+            127.68,
+            127.68,
+          ],
+          "sale_price": 108.61,
+          "sale_price_range": Array [
+            139.98,
+            139.98,
+          ],
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/60765_XXX_v1.tif",
           "title": "Weathered Gray Wood Jozy Dining Chairs Set of 2",
+          "url": "https://pacifichome.bloomreach.com/products/60765",
           "variants": Array [
             Object {
               "image": "https://pacific-demo-data.bloomreach.cloud/home/images/60765_XXX_v1.tif",
@@ -741,11 +783,23 @@ test('ProductSearch mapper builds the correct data object from v2 API response w
       "number_of_results": 2,
       "products": Array [
         Object {
+          "brand": "",
+          "description": "Featuring a handwoven rattan seat and back, our Willis chair offers a minimalist twist on a classic. Its wingback silhouette is paired with sleek black metal legs for bold look and a comfy seat.",
           "final_price": 192.99,
           "id": "78330",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/78330",
+          "pid": "78330",
           "price": 296.91,
+          "price_range": Array [
+            296.91,
+            296.91,
+          ],
+          "sale_price": 192.99,
+          "sale_price_range": Array [
+            161.99,
+            161.99,
+          ],
           "sku_color_group": "Black",
           "sku_swatch_images": Array [
             "556689",
@@ -753,7 +807,9 @@ test('ProductSearch mapper builds the correct data object from v2 API response w
           "sku_thumb_images": Array [
             "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
           ],
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
           "title": "Black Rattan Willis Wingback Chair",
+          "url": "https://pacifichome.bloomreach.com/products/78330",
           "variant_name": "Black",
           "variants": Array [
             Object {
@@ -792,11 +848,23 @@ test('ProductSearch mapper builds the correct data object from v2 API response w
           ],
         },
         Object {
+          "brand": "",
+          "description": "Featuring a handwoven rattan seat and back, our Willis chair offers a minimalist twist on a classic. Its wingback silhouette is paired with sleek black metal legs for bold look and a comfy seat.",
           "final_price": 192.99,
           "id": "78330",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/35527_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/78330",
+          "pid": "78330",
           "price": 296.91,
+          "price_range": Array [
+            296.91,
+            296.91,
+          ],
+          "sale_price": 192.99,
+          "sale_price_range": Array [
+            161.99,
+            161.99,
+          ],
           "sku_color_group": "Blue",
           "sku_swatch_images": Array [
             "10008031",
@@ -804,7 +872,9 @@ test('ProductSearch mapper builds the correct data object from v2 API response w
           "sku_thumb_images": Array [
             "https://pacific-demo-data.bloomreach.cloud/home/images/35527_XXX_v1.tif",
           ],
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
           "title": "Black Rattan Willis Wingback Chair",
+          "url": "https://pacifichome.bloomreach.com/products/78330",
           "variant_name": "Blue",
           "variants": Array [
             Object {
@@ -843,11 +913,23 @@ test('ProductSearch mapper builds the correct data object from v2 API response w
           ],
         },
         Object {
+          "brand": "",
+          "description": "Featuring a handwoven rattan seat and back, our Willis chair offers a minimalist twist on a classic. Its wingback silhouette is paired with sleek black metal legs for bold look and a comfy seat.",
           "final_price": 192.99,
           "id": "78330",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/60765_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/78330",
+          "pid": "78330",
           "price": 296.91,
+          "price_range": Array [
+            296.91,
+            296.91,
+          ],
+          "sale_price": 192.99,
+          "sale_price_range": Array [
+            161.99,
+            161.99,
+          ],
           "sku_color_group": "Gray",
           "sku_swatch_images": Array [
             "526102",
@@ -855,7 +937,9 @@ test('ProductSearch mapper builds the correct data object from v2 API response w
           "sku_thumb_images": Array [
             "https://pacific-demo-data.bloomreach.cloud/home/images/60765_XXX_v1.tif",
           ],
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/78330_XXX_v1.tif",
           "title": "Black Rattan Willis Wingback Chair",
+          "url": "https://pacifichome.bloomreach.com/products/78330",
           "variant_name": "Gray",
           "variants": Array [
             Object {
@@ -894,12 +978,26 @@ test('ProductSearch mapper builds the correct data object from v2 API response w
           ],
         },
         Object {
+          "brand": "",
+          "description": "Boasting a curved, shapely silhouette, our Blue Linen Paige Round Back Dining Chairs define simple elegance. Crafted of white American oak, they feature a distressed finish that adds to their classic appeal.",
           "final_price": 425.96,
           "id": "35527",
           "image": "https://pacific-demo-data.bloomreach.cloud/home/images/35527_XXX_v1.tif",
           "link": "https://pacifichome.bloomreach.com/products/35527",
+          "pid": "35527",
           "price": 655.32,
+          "price_range": Array [
+            655.32,
+            655.32,
+          ],
+          "sale_price": 425.96,
+          "sale_price_range": Array [
+            275.98,
+            275.98,
+          ],
+          "thumb_image": "https://pacific-demo-data.bloomreach.cloud/home/images/35527_XXX_v1.tif",
           "title": "Blue Linen Paige Round Back Dining Chairs, Set of 2",
+          "url": "https://pacifichome.bloomreach.com/products/35527",
           "variants": Array [],
         },
       ],
